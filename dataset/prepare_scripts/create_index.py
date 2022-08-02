@@ -1,6 +1,7 @@
 import os
 import h5py
 import numpy as np
+from multiprocessing import Process
 
 def create_folder(fd):
     if not os.path.exists(fd):
@@ -26,4 +27,4 @@ def create_indexes(waveforms_hdf5_path, indexes_hdf5_path):
     print('Write to {}'.format(indexes_hdf5_path))
 
 if __name__ == '__main__':
-    create_indexes('audioset/hdf5s/balanced_train.h5', 'audioset/hdf5s/indexes/balanced_train/balanced_train.h5')
+    create_indexes('audioset/hdf5s/waveforms/balanced_train.h5', 'audioset/hdf5s/indexes/balanced_train/balanced_train.h5')
