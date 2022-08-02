@@ -102,6 +102,7 @@ def download_wavs(csv_path, audios_dir, file):
             
             # Remove downloaded video
             #os.system("rm {}".format(video_path))
+            os.remove(video_path)
             
             logging.info("Download and convert to {}".format(audio_path))
                 

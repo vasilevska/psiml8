@@ -29,6 +29,7 @@ def process_one(i, f1, f2):
     if i % 100 == 0:
         print(f"{i}/{all_num} \t", f1)
     os.system(f"ffmpeg  -hide_banner -nostats -loglevel error -n -i {f1} -codec:a mp3 -ar 32000 {f2}mp3")
+    os.remove(f1)
 
 
 if __name__ == '__main__':

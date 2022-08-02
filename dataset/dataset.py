@@ -6,10 +6,10 @@ from torch.utils.data import Dataset
 import h5py
 import random
 import torch
+import prepare_scripts.config as config
+ 
 
-
-
-class SEDDataset(Dataset):
+class Audioset(Dataset):
     def __init__(self, index_path, idc, config, eval_mode = False):
         """
         Args:
@@ -21,7 +21,7 @@ class SEDDataset(Dataset):
         self.config = config
         self.dataset_file = h5py.File(index_path, "r")
         self.idc = idc
-        self.total_size = len(self.fp["audio_name"])
+        self.total_size = len(self.dataset_file["audio_name"])
         self.classes_num = config.classes_num
         self.eval_mode = eval_mode
 
@@ -32,7 +32,7 @@ class SEDDataset(Dataset):
                 self.total_size = 1000
             self.queue = []
             for i in range(self.total_size):
-                target = self.fp["target"][i]
+                target = self.dataset_file["target"][i]
                 if np.sum(target) > 0:
                     self.queue.append(i)
             self.total_size = len(self.queue)
@@ -105,10 +105,10 @@ class SEDDataset(Dataset):
         }
         """
         s_index = self.queue[index]
-        audio_name = self.fp["audio_name"][s_index].decode()
-        hdf5_path = self.fp["hdf5_path"][s_index].decode()
-        r_idx = self.fp["index_in_hdf5"][s_index]
-        target = self.fp["target"][s_index].astype(np.float32)
+        audio_name = self.dataset_file["audio_name"][s_index].decode()
+        hdf5_path = self.dataset_file["hdf5_path"][s_index].decode()
+        r_idx = self.dataset_file["index_in_hdf5"][s_index]
+        target = self.dataset_file["target"][s_index].astype(np.float32)
         waveform = self.decode_mp3(self.dataset_file['mp3'][index])
     
         if (not self.eval_mode):
@@ -161,5 +161,6 @@ class SEDDataset(Dataset):
         else:
             raise Exception('Incorrect sample rate!') 
 
-#if __name__ == '__main__':
-        
+if __name__ == '__main__':
+        a = Audioset('audioset/hdf5s/indexes/full_train.h5','', config, False)
+        print(a.__getitem__(0))

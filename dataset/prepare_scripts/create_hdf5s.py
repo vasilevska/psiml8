@@ -151,8 +151,9 @@ def pack_waveforms_to_hdf5(audios_dir, csv_path, waveforms_hdf5_path, mini_data 
     logging.info('Pack hdf5 time: {:.3f}'.format(time.time() - total_time))
 
 if __name__ == '__main__':
-    pack_waveforms_to_hdf5('audioset/mp3_audios/balanced_train_segments', 'audioset/metadata/balanced_train_segments.csv', 'audioset/hdf5s/waveforms/balanced_train.h5')
     pack_waveforms_to_hdf5('audioset/mp3_audios/eval_segments', 'audioset/metadata/eval_segments.csv', 'audioset/hdf5s/waveforms/eval.h5')
+    pack_waveforms_to_hdf5('audioset/mp3_audios/balanced_train_segments', 'audioset/metadata/balanced_train_segments.csv', 'audioset/hdf5s/waveforms/balanced_train.h5')
+   
     for i in range(1,41):
         if i<10:
             i = "0"+ str(i)
