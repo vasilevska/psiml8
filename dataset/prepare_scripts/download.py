@@ -81,7 +81,7 @@ def download_wavs(csv_path, audios_dir, file):
         #"youtube-dl --quiet -o audios/eval_segments/Y_4gqARaEJE.wav -x https://www.youtube.com/watch?v=--4gqARaEJE"
         # Download full video of whatever format
         video_name = 'audioset/audios/{}/_Y{}.%(ext)s'.format(file, audio_id)
-        download_string = "youtube-dl --quiet -o {} -x https://www.youtube.com/watch?v={}".format(video_name, audio_id)
+        download_string = "youtube-dl --cookies cookies.txt --quiet -o {} -x https://www.youtube.com/watch?v={}".format(video_name, audio_id) + " --force-ipv4  --no-check-certificate"
         os.system(download_string)
 
         video_paths = glob.glob('audioset/audios/'+ file + '/_Y' + audio_id + '.*')
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     os.system('wget -O "audioset/metadata/qa_true_counts.csv" "http://storage.googleapis.com/us_audioset/youtube_corpus/v1/qa/qa_true_counts.csv"')
     """
     #split_unbalanced_csv_to_partial_csvs('audioset/metadata/unbalanced_train_segments.csv', 'audioset/metadata/unbalanced_train_segments')
-    #p1 = Process(target=download_wavs, args = ["audioset/metadata/eval_segments.csv", "audioset/audios/eval_segments", 'eval_segments'])
+    p1 = Process(target=download_wavs, args = ["audioset/metadata/eval_segments.csv", "audioset/audios/eval_segments", 'eval_segments'])
     #p2 = Process(target=download_wavs, args = ["audioset/metadata/balanced_train_segments.csv", "audioset/audios/balanced_train_segments", 'balanced_train_segments'])
     procs = []
     for i in range(1,41):
@@ -158,16 +158,16 @@ if __name__ == '__main__':
         else:
             i = str(i)
         procs.append(Process(target=download_wavs, args = ["audioset/metadata/unbalanced_train_segments/unbalanced_train_segments_part"+ i +".csv", "audioset/audios/unbalanced_train_segments", 'unbalanced_train_segments']))
-    #p3 = Process(target=download_wavs, args = ["audioset/metadata/unbalanced_train_segments.csv", "audioset/audios/unbalanced_train_segments", 'unbalanced_train_segments'])
-    #p1.start()
+    
+    p1.start()
     #p2.start()
     
-    for p in procs:
-        p.start()
-    #p1.join()
+    #for p in procs:
+    #    p.start()
+    p1.join()
     #p2.join()
-    for p in procs:
-        p.join()
-    #p3.join()
+    #for p in procs:
+    #    p.join()
+    
     
     

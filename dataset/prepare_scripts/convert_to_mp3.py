@@ -33,8 +33,8 @@ def process_one(i, f1, f2):
 
 if __name__ == '__main__':
 
-    #folders = ['balanced_train_segments', 'eval_segments', 'unbalanced_train_segments']
-    folders = ['unbalanced_train_segments']
+    folders = ['balanced_train_segments', 'eval_segments', 'unbalanced_train_segments']
+    #folders = ['unbalanced_train_segments']
 
     print("I will work on these folders:")
     print(folders)

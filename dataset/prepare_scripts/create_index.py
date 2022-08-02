@@ -26,4 +26,11 @@ def create_indexes(waveforms_hdf5_path, indexes_hdf5_path):
     print('Write to {}'.format(indexes_hdf5_path))
 
 if __name__ == '__main__':
-    create_indexes('audioset/hdf5s/balanced_train.h5', 'audioset/hdf5s/indexes/balanced_train/balanced_train.h5')
+    create_indexes('audioset/hdf5s/waveforms/balanced_train.h5', 'audioset/hdf5s/indexes/balanced_train/balanced_train.h5')
+    create_indexes('audioset/hdf5s/waveforms/eval.h5', 'audioset/hdf5s/indexes/eval/eval.h5')
+    for i in range(1,41):
+        if i<10:
+            i = "0"+ str(i)
+        else:
+            i = str(i)
+        create_indexes('audioset/hdf5s/waveforms/unbalanced_train/unbalanced_train_part' + i + '.h5', 'audioset/hdf5s/indexes/unbalanced_train/unbalanced_train_part' + i + '.h5')
