@@ -37,7 +37,7 @@ def combine_full_indexes(indexes_hdf5s_dir, full_indexes_hdf5_path):
             name='target', 
             shape=(0, classes_num), 
             maxshape=(None, classes_num), 
-            dtype=np.bool)
+            dtype='u1')
 
         full_hf.create_dataset(
             name='hdf5_path', 

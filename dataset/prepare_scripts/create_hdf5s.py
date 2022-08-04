@@ -92,7 +92,8 @@ for read_file,prefix in [(balanced_csv,"balanced_train_segments/"), (eval_csv,"e
     print("now working on ",read_file,prefix)
     #files, y = torch.load(read_file+".pth")
     files, y = check_available(read_file, mp3_path)
-    y = np.packbits(y, axis=-1)
+    #y = np.packbits(y, axis=-1)
+    y = np.array(y)
     packed_len = y.shape[1]
     print(files[0], "classes: ",packed_len, y.dtype)
     available_size = len(files)
@@ -104,7 +105,7 @@ for read_file,prefix in [(balanced_csv,"balanced_train_segments/"), (eval_csv,"e
     with h5py.File(base_dir + "waveforms/" + save_file+".hdf", 'w') as hf:
         audio_name = hf.create_dataset('audio_name', shape=((available_size,)), dtype='S20')
         waveform = hf.create_dataset('waveform', shape=((available_size,)), dtype=dt)
-        target = hf.create_dataset('target', shape=((available_size, packed_len)), dtype=y.dtype)
+        target = hf.create_dataset('target', shape=((available_size, packed_len)), dtype='u1')
         for i, file in enumerate(files):
             if i%1000==0:
                 print(f"{i}/{available_size}")
@@ -112,7 +113,7 @@ for read_file,prefix in [(balanced_csv,"balanced_train_segments/"), (eval_csv,"e
             a = np.fromfile(mp3_path + prefix  + f, dtype='uint8')
             audio_name[i]=f
             waveform[i] = a
-            target[i] = y[i]
+            target[i] = [bool(ele) for ele in y[i]]
 
     print(a.shape)
     print("Done!" , prefix)
@@ -127,7 +128,8 @@ for idx in  range(41):
     x,y = check_available(tmp_csv,mp3_path,prefix=prefix)
     x = np.array(x)
     if(len(y)):
-        y=np.packbits(y, axis=-1)
+        #y=np.packbits(y, axis=-1)
+        y = np.array(y)
         print("x, y", x.shape, y.shape)
         if all_x is None:
             all_x = x
@@ -155,7 +157,7 @@ print(base_dir+ "/" + save_file+ ".hdf")
 with h5py.File(base_dir + "waveforms/" + save_file+ ".hdf", 'w') as hf:
     audio_name = hf.create_dataset('audio_name', shape=((available_size,)), dtype='S20')
     waveform = hf.create_dataset('waveform', shape=((available_size,)), dtype=dt)
-    target = hf.create_dataset('target', shape=((available_size, packed_len)), dtype=y.dtype)
+    target = hf.create_dataset('target', shape=((available_size, packed_len)), dtype='u1')
     for i,file in enumerate(files):
         if i%1000==0:
             print(f"{i}/{available_size}")
@@ -163,7 +165,7 @@ with h5py.File(base_dir + "waveforms/" + save_file+ ".hdf", 'w') as hf:
         a = np.fromfile(mp3_path + prefix  + f, dtype='uint8')
         audio_name[i]=f
         waveform[i] = a
-        target[i] = y[i]
+        target[i] = [bool(ele) for ele in y[i]]
 
 print(a.shape)
 print("Done!" , prefix)

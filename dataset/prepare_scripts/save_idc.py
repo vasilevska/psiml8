@@ -14,7 +14,7 @@ def process_idc(index_path, classes_num, filename):
             t_class = np.where(f["target"][i])[0]
             for t in t_class:
                 idc[t].append(i)
-    print(idc)
+    #print(idc)
     np.save(filename, idc)
     logging.info("Load Data Succeed...............")
 

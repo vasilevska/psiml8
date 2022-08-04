@@ -109,7 +109,7 @@ class Audioset(Dataset):
         hdf5_path = self.dataset_file["hdf5_path"][s_index].decode()
         r_idx = self.dataset_file["index_in_hdf5"][s_index]
         target = self.dataset_file["target"][s_index].astype(np.float32)
-        waveform = self.decode_mp3(self.dataset_file['mp3'][index])
+        waveform = self.decode_mp3(self.dataset_file['waveform'][index])
     
         if (not self.eval_mode):
             waveform = self.pydub_augment(waveform)
@@ -162,5 +162,6 @@ class Audioset(Dataset):
             raise Exception('Incorrect sample rate!') 
 
 if __name__ == '__main__':
-        a = Audioset('audioset/hdf5s/indexes/full_train.h5','', config, False)
-        print(a.__getitem__(0))
+    full_train_idc = np.load('full_train_idc.npy', allow_pickle=True)
+    a = Audioset('audioset/hdf5s/indexes/full_train.h5', full_train_idc, config, True)
+    print(a.__getitem__(0))
