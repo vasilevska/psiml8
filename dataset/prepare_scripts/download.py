@@ -5,6 +5,7 @@ import logging
 import datetime
 import numpy as np
 from multiprocessing import Process
+from convert_to_mp3 import process_folder
 
 
 def create_folder(fd):
@@ -81,6 +82,8 @@ def download_wavs(csv_path, audios_dir, file):
         #"youtube-dl --quiet -o audios/eval_segments/Y_4gqARaEJE.wav -x https://www.youtube.com/watch?v=--4gqARaEJE"
         # Download full video of whatever format
         video_name = 'audioset/audios/{}/_Y{}.%(ext)s'.format(file, audio_id)
+        if os.path.isfile('audioset/mp3_audios/{}/Y{}.mp3'.format(file, audio_id)):
+            continue
         download_string = "youtube-dl --cookies cookies.txt --quiet -o {} -x https://www.youtube.com/watch?v={}".format(video_name, audio_id) + " --force-ipv4  --no-check-certificate"
         os.system(download_string)
 
@@ -105,9 +108,18 @@ def download_wavs(csv_path, audios_dir, file):
             os.remove(video_path)
             
             logging.info("Download and convert to {}".format(audio_path))
+
+
+            if n % 500 == 0 and n > 0:
+                process_folder(audios_dir)
+                logging.info("Processed 5000 files")
+
                 
     logging.info('Download finished! Time spent: {:.3f} s'.format(
         time.time() - download_time))
+    
+    process_folder(audios_dir)
+    logging.info("Processed all files")
 
     logging.info('Logs can be viewed in {}'.format(logs_dir))
 
@@ -150,8 +162,9 @@ if __name__ == '__main__':
     os.system('wget -O "audioset/metadata/qa_true_counts.csv" "http://storage.googleapis.com/us_audioset/youtube_corpus/v1/qa/qa_true_counts.csv"')
     """
     #split_unbalanced_csv_to_partial_csvs('audioset/metadata/unbalanced_train_segments.csv', 'audioset/metadata/unbalanced_train_segments')
+    
     p1 = Process(target=download_wavs, args = ["audioset/metadata/eval_segments.csv", "audioset/audios/eval_segments", 'eval_segments'])
-    #p2 = Process(target=download_wavs, args = ["audioset/metadata/balanced_train_segments.csv", "audioset/audios/balanced_train_segments", 'balanced_train_segments'])
+    p2 = Process(target=download_wavs, args = ["audioset/metadata/balanced_train_segments.csv", "audioset/audios/balanced_train_segments", 'balanced_train_segments'])
     procs = []
     for i in range(1,41):
         if i<10:
@@ -161,14 +174,20 @@ if __name__ == '__main__':
         procs.append(Process(target=download_wavs, args = ["audioset/metadata/unbalanced_train_segments/unbalanced_train_segments_part"+ i +".csv", "audioset/audios/unbalanced_train_segments", 'unbalanced_train_segments']))
     
     p1.start()
-    #p2.start()
+    p2.start()
     
-    #for p in procs:
-    #    p.start()
+    for i in range(1,41,3):
+        if i == 40:
+            startp = procs[i:]
+        else:
+            startp = procs[i:i+3]
+        for p in startp:
+            p.start()
+    
+        for p in startp:
+            p.join()
     p1.join()
-    #p2.join()
-    #for p in procs:
-    #    p.join()
+    p2.join()
     
     
     

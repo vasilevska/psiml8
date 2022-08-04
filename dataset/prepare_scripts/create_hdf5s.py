@@ -1,57 +1,11 @@
-import logging
 import h5py
-import time
-import config
-import os
 import numpy as np
-import librosa
-from multiprocessing import Process
-from pydub import AudioSegment
-
-def create_folder(fd):
-    if not os.path.exists(fd):
-        os.makedirs(fd)
-
-def get_filename(path):
-    path = os.path.realpath(path)
-    na_ext = path.split('\\')[-1]
-    na = os.path.splitext(na_ext)[0]
-    return na
-
-def pad_or_truncate(x, audio_length):
-    """Pad all audio to specific length."""
-    if len(x) <= audio_length:
-        return np.concatenate((x, np.zeros(audio_length - len(x))), axis=0)
-    else:
-        return x[0 : audio_length]
-
-def create_logging(log_dir, filemode):
-    create_folder(log_dir)
-    i1 = 0
-
-    while os.path.isfile(os.path.join(log_dir, '{:04d}.log'.format(i1))):
-        i1 += 1
-        
-    log_path = os.path.join(log_dir, '{:04d}.log'.format(i1))
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-        datefmt='%a, %d %b %Y %H:%M:%S',
-        filename=log_path,
-        filemode=filemode)
-
-    # Print to console
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-    console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
-    
-    return logging
-
+import csv
+import os
 
 def read_metadata(csv_path, classes_num, id_to_ix):
     """Read metadata of AudioSet from a csv file.
+    source: https://github.com/qiuqiangkong/audioset_tagging_cnn/blob/d2f4b8c18eab44737fcc0de1248ae21eb43f6aa4/utils/utilities.py#L59
     Args:
       csv_path: str
     Returns:
@@ -70,7 +24,7 @@ def read_metadata(csv_path, classes_num, id_to_ix):
         items = line.split(', ')
         """items: ['--4gqARaEJE', '0.000', '10.000', '"/m/068hy,/m/07q6cd_,/m/0bt9lr,/m/0jbk"\n']"""
 
-        audio_name = 'Y{}.wav'.format(items[0])   # Audios are started with an extra 'Y' when downloading
+        audio_name = 'Y{}.mp3'.format(items[0])   # Audios are started with an extra 'Y' when downloading
         label_ids = items[3].split('"')[1].split(',')
 
         audio_names.append(audio_name)
@@ -79,90 +33,139 @@ def read_metadata(csv_path, classes_num, id_to_ix):
         for id in label_ids:
             ix = id_to_ix[id]
             targets[n, ix] = 1
-    
+
     meta_dict = {'audio_name': np.array(audio_names), 'target': targets}
     return meta_dict
 
 
-def float32_to_int16(x):
-    assert np.max(np.abs(x)) <= 1.2
-    x = np.clip(x, -1, 1)
-    return (x * 32767.).astype(np.int16)
 
-
-def pack_waveforms_to_hdf5(audios_dir, csv_path, waveforms_hdf5_path, mini_data = None):
-    """Pack waveform and target of several audio clips to a single hdf5 file. 
-    This can speed up loading and training.
-    """
-
-    clip_samples = config.clip_samples
-    classes_num = config.classes_num
-    sample_rate = config.sample_rate
-    id_to_ix = config.id_to_ix
-
-    # Paths
-    if mini_data:
-        prefix = 'mini_'
-        waveforms_hdf5_path += '.mini'
-    else:
-        prefix = ''
-
-    create_folder(os.path.dirname(waveforms_hdf5_path))
-
-    logs_dir = 'audioset/_logs/pack_waveforms_to_hdf5/{}{}'.format(prefix, get_filename(csv_path))
-    create_folder(logs_dir)
-    create_logging(logs_dir, filemode='w')
-    logging.info('Write logs to {}'.format(logs_dir))
-    
-    # Read csv file
-    meta_dict = read_metadata(csv_path, classes_num, id_to_ix)
-
-    if mini_data:
-        mini_num = 10
-        for key in meta_dict.keys():
-            meta_dict[key] = meta_dict[key][0 : mini_num]
-
-    audios_num = len(meta_dict['audio_name'])
-
-    # Pack waveform to hdf5
-    total_time = time.time()
-
-    with h5py.File(waveforms_hdf5_path, 'w') as hf:
-        hf.create_dataset('audio_name', shape=((audios_num,)), dtype='S20')
-        hf.create_dataset('waveform', shape=((audios_num, clip_samples)), dtype=np.int16)
-        hf.create_dataset('target', shape=((audios_num, classes_num)), dtype=np.bool)
-        hf.attrs.create('sample_rate', data=sample_rate, dtype=np.int32)
-
-        # Pack waveform & target of several audio clips to a single hdf5 file
-        for n in range(audios_num):
-            meta_dict['audio_name'][n] = meta_dict['audio_name'][n][:-3] + 'mp3'
-            audio_path = audios_dir + '/' + meta_dict['audio_name'][n]
-
-            if os.path.isfile(audio_path):
-                logging.info('{} {}'.format(n, audio_path))
-                (audio, _) = librosa.load(audio_path, sr=sample_rate, mono=True)
-                print(audio)
-                audio = pad_or_truncate(audio, clip_samples)
-                print(audio)
-                hf['audio_name'][n] = meta_dict['audio_name'][n].encode()
-                hf['waveform'][n] = float32_to_int16(audio)
-                hf['target'][n] = meta_dict['target'][n]
-            else:
-               logging.info('{} File does not exist! {}'.format(n, audio_path))
-
-    logging.info('Write to {}'.format(waveforms_hdf5_path))
-    logging.info('Pack hdf5 time: {:.3f}'.format(time.time() - total_time))
-
-if __name__ == '__main__':
-    pack_waveforms_to_hdf5('audioset/mp3_audios/eval_segments', 'audioset/metadata/eval_segments.csv', 'audioset/hdf5s/waveforms/eval4.h5')
-    """
-    pack_waveforms_to_hdf5('audioset/mp3_audios/balanced_train_segments', 'audioset/metadata/balanced_train_segments.csv', 'audioset/hdf5s/waveforms/balanced_train.h5')
-   
-    for i in range(1,41):
-        if i<10:
-            i = "0"+ str(i)
+def check_available(balanced_csv,balanced_audio_path,prefix=None):
+    meta_csv = read_metadata(balanced_csv,classes_num,id_to_ix)
+    audios_num = len(meta_csv['audio_name'])
+    found=0
+    notfound=0
+    available_files=[]
+    available_targets=[]
+    if prefix is None:
+        prefix = os.path.basename(balanced_csv)[:-4]
+    for n in range(audios_num):
+        audio_path =  meta_csv['audio_name'][n]
+        #print(balanced_audio_path + f"{prefix}/{audio_path}")
+        if os.path.isfile(balanced_audio_path + f"{prefix}/{audio_path}" ):
+            found+=1
+            available_files.append(meta_csv['audio_name'][n])
+            available_targets.append(meta_csv['target'][n])
         else:
-            i = str(i)
-        pack_waveforms_to_hdf5('audioset/mp3_audios/unbalanced_train_segments', 'audioset/metadata/unbalanced_train_segments/unbalanced_train_segments_part' + i + '.csv', 'audioset/hdf5s/waveforms/unbalanced_train/unbalanced_train_part'+ i +'.h5')
-    
-    """
+            notfound+=1
+    print(f"Found {found} . not found {notfound}")
+    return available_files, available_targets
+
+
+
+base_dir = "audioset/hdf5s/"
+balanced_csv= "audioset/metadata/balanced_train_segments.csv"
+eval_csv= "audioset/metadata/eval_segments.csv"
+mp3_path = "audioset/mp3_audios/"
+
+# Load label
+with open('audioset/metadata/class_labels_indices.csv', 'r') as f:
+    reader = csv.reader(f, delimiter=',')
+    lines = list(reader)
+
+labels = []
+ids = []    # Each label has a unique id such as "/m/068hy"
+for i1 in range(1, len(lines)):
+    id = lines[i1][1]
+    label = lines[i1][2]
+    ids.append(id)
+    labels.append(label)
+
+classes_num = len(labels)
+
+lb_to_ix = {label : i for i, label in enumerate(labels)}
+ix_to_lb = {i : label for i, label in enumerate(labels)}
+
+id_to_ix = {id : i for i, id in enumerate(ids)}
+ix_to_id = {i : id for i, id in enumerate(ids)}
+
+for read_file,prefix in [(balanced_csv,"balanced_train_segments/"), (eval_csv,"eval_segments/"),]:
+    print("now working on ",read_file,prefix)
+    #files, y = torch.load(read_file+".pth")
+    files, y = check_available(read_file, mp3_path)
+    y = np.packbits(y, axis=-1)
+    packed_len = y.shape[1]
+    print(files[0], "classes: ",packed_len, y.dtype)
+    available_size = len(files)
+    f = files[0][:-3]+"mp3"
+    a = np.fromfile(mp3_path+prefix + "/"+f, dtype='uint8')
+
+    dt = h5py.vlen_dtype(np.dtype('uint8'))
+    save_file = prefix.split("/")[0]
+    with h5py.File(base_dir + "waveforms/" + save_file+".hdf", 'w') as hf:
+        audio_name = hf.create_dataset('audio_name', shape=((available_size,)), dtype='S20')
+        waveform = hf.create_dataset('waveform', shape=((available_size,)), dtype=dt)
+        target = hf.create_dataset('target', shape=((available_size, packed_len)), dtype=y.dtype)
+        for i, file in enumerate(files):
+            if i%1000==0:
+                print(f"{i}/{available_size}")
+            f = file[:-3] + "mp3"
+            a = np.fromfile(mp3_path + prefix  + f, dtype='uint8')
+            audio_name[i]=f
+            waveform[i] = a
+            target[i] = y[i]
+
+    print(a.shape)
+    print("Done!" , prefix)
+
+print("working on unbalanced...")
+
+all_x,all_y = None, None
+for idx in  range(41):
+    print("working on ",idx)
+    tmp_csv = f"audioset/metadata/unbalanced_train_segments/unbalanced_train_segments_part{idx:02}.csv"
+    prefix = f"unbalanced_train_segments"
+    x,y = check_available(tmp_csv,mp3_path,prefix=prefix)
+    x = np.array(x)
+    if(len(y)):
+        y=np.packbits(y, axis=-1)
+        print("x, y", x.shape, y.shape)
+        if all_x is None:
+            all_x = x
+            all_y = y
+        else:
+            all_x = np.concatenate((all_x,x))
+            all_y = np.concatenate((all_y,y))
+        print(f"done {idx}! all x,y",all_x.shape, all_y.shape)
+
+
+
+print("now working on packing  unbalanced")
+prefix = "unbalanced_train_segments/"
+files = all_x
+y = all_y
+packed_len = y.shape[1]
+print(files[0], "classes: ",packed_len, y.dtype)
+available_size = len(files)
+f = files[0][:-3]+"mp3"
+a = np.fromfile(mp3_path + prefix + f, dtype='uint8')
+
+dt = h5py.vlen_dtype(np.dtype('uint8'))
+save_file = prefix.split("/")[0]
+print(base_dir+ "/" + save_file+ ".hdf")
+with h5py.File(base_dir + "waveforms/" + save_file+ ".hdf", 'w') as hf:
+    audio_name = hf.create_dataset('audio_name', shape=((available_size,)), dtype='S20')
+    waveform = hf.create_dataset('waveform', shape=((available_size,)), dtype=dt)
+    target = hf.create_dataset('target', shape=((available_size, packed_len)), dtype=y.dtype)
+    for i,file in enumerate(files):
+        if i%1000==0:
+            print(f"{i}/{available_size}")
+        f = file[:-3] + "mp3"
+        a = np.fromfile(mp3_path + prefix  + f, dtype='uint8')
+        audio_name[i]=f
+        waveform[i] = a
+        target[i] = y[i]
+
+print(a.shape)
+print("Done!" , prefix)
+
+

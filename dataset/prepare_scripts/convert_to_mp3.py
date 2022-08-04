@@ -21,7 +21,7 @@ def process_folder(fol="balanced_train_segments"):
     all_num = len(all_files)
     cmds = [(i, file, out_path + fol + "/" + os.path.basename(file)[:-3]) for i, file in enumerate(all_files)]
     print(cmds[0])
-    with multiprocessing.Pool(processes=2) as pool:
+    with multiprocessing.Pool(processes=10) as pool:
         pool.starmap(process_one, cmds)
 
 
