@@ -6,6 +6,7 @@ import os
 import numpy as np
 import librosa
 from multiprocessing import Process
+from pydub import AudioSegment
 
 def create_folder(fd):
     if not os.path.exists(fd):
@@ -134,24 +135,27 @@ def pack_waveforms_to_hdf5(audios_dir, csv_path, waveforms_hdf5_path, mini_data 
 
         # Pack waveform & target of several audio clips to a single hdf5 file
         for n in range(audios_num):
-            audio_path = os.path.join(audios_dir, meta_dict['audio_name'][n])
+            meta_dict['audio_name'][n] = meta_dict['audio_name'][n][:-3] + 'mp3'
+            audio_path = audios_dir + '/' + meta_dict['audio_name'][n]
 
             if os.path.isfile(audio_path):
                 logging.info('{} {}'.format(n, audio_path))
-                (audio, _) = librosa.core.load(audio_path, sr=sample_rate, mono=True)
+                (audio, _) = librosa.load(audio_path, sr=sample_rate, mono=True)
+                print(audio)
                 audio = pad_or_truncate(audio, clip_samples)
-
+                print(audio)
                 hf['audio_name'][n] = meta_dict['audio_name'][n].encode()
                 hf['waveform'][n] = float32_to_int16(audio)
                 hf['target'][n] = meta_dict['target'][n]
-            #else:
-            #   logging.info('{} File does not exist! {}'.format(n, audio_path))
+            else:
+               logging.info('{} File does not exist! {}'.format(n, audio_path))
 
     logging.info('Write to {}'.format(waveforms_hdf5_path))
     logging.info('Pack hdf5 time: {:.3f}'.format(time.time() - total_time))
 
 if __name__ == '__main__':
-    pack_waveforms_to_hdf5('audioset/mp3_audios/eval_segments', 'audioset/metadata/eval_segments.csv', 'audioset/hdf5s/waveforms/eval.h5')
+    pack_waveforms_to_hdf5('audioset/mp3_audios/eval_segments', 'audioset/metadata/eval_segments.csv', 'audioset/hdf5s/waveforms/eval4.h5')
+    """
     pack_waveforms_to_hdf5('audioset/mp3_audios/balanced_train_segments', 'audioset/metadata/balanced_train_segments.csv', 'audioset/hdf5s/waveforms/balanced_train.h5')
    
     for i in range(1,41):
@@ -160,3 +164,5 @@ if __name__ == '__main__':
         else:
             i = str(i)
         pack_waveforms_to_hdf5('audioset/mp3_audios/unbalanced_train_segments', 'audioset/metadata/unbalanced_train_segments/unbalanced_train_segments_part' + i + '.csv', 'audioset/hdf5s/waveforms/unbalanced_train/unbalanced_train_part'+ i +'.h5')
+    
+    """
