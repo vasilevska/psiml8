@@ -20,6 +20,7 @@ def create_indexes(waveforms_hdf5_path, indexes_hdf5_path):
             audios_num = len(hr['audio_name'])
             hw.create_dataset('audio_name', data=hr['audio_name'][:], dtype='S20')
             hw.create_dataset('target', data=hr['target'][:], dtype='u1')
+            hw.create_dataset('waveform', data=hr['waveform'][:], dtype=h5py.vlen_dtype(np.dtype('uint8')))
             hw.create_dataset('hdf5_path', data=[waveforms_hdf5_path.encode()] * audios_num, dtype='S200')
             hw.create_dataset('index_in_hdf5', data=np.arange(audios_num), dtype=np.int32)
 

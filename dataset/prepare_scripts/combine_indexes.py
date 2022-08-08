@@ -40,6 +40,12 @@ def combine_full_indexes(indexes_hdf5s_dir, full_indexes_hdf5_path):
             dtype='u1')
 
         full_hf.create_dataset(
+            name='waveform', 
+            shape=(0,), 
+            maxshape=(None,), 
+            dtype=h5py.vlen_dtype(np.dtype('uint8')))
+
+        full_hf.create_dataset(
             name='hdf5_path', 
             shape=(0,), 
             maxshape=(None,), 
@@ -62,6 +68,9 @@ def combine_full_indexes(indexes_hdf5s_dir, full_indexes_hdf5_path):
 
                 full_hf['target'].resize((new_n, classes_num))
                 full_hf['target'][n : new_n] = part_hf['target'][:]
+
+                full_hf['waveform'].resize((new_n,))
+                full_hf['waveform'][n : new_n] = part_hf['waveform'][:]
 
                 full_hf['hdf5_path'].resize((new_n,))
                 full_hf['hdf5_path'][n : new_n] = part_hf['hdf5_path'][:]

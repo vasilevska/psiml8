@@ -5,7 +5,7 @@ import logging
 import datetime
 import numpy as np
 from multiprocessing import Process
-from convert_to_mp3 import process_folder
+from .convert_to_mp3 import process_folder
 
 
 def create_folder(fd):
@@ -61,6 +61,7 @@ def download_wavs(csv_path, audios_dir, file):
         lines = f.readlines()
     
     lines = lines[3:]   # Remove csv head info
+    lines.reverse()
 
     #f mini_data:
     #   lines = lines[0 : 10]   # Download partial data for debug
@@ -84,7 +85,7 @@ def download_wavs(csv_path, audios_dir, file):
         video_name = 'audioset/audios/{}/_Y{}.%(ext)s'.format(file, audio_id)
         if os.path.isfile('audioset/mp3_audios/{}/Y{}.mp3'.format(file, audio_id)):
             continue
-        download_string = "youtube-dl --cookies cookies.txt --quiet -o {} -x https://www.youtube.com/watch?v={}".format(video_name, audio_id) + " --force-ipv4  --no-check-certificate"
+        download_string = "youtube-dl --cookies cookies.txt --user-agent "" --quiet -o {} -x https://www.youtube.com/watch?v={}".format(video_name, audio_id) + " --force-ipv4  --no-check-certificate"
         os.system(download_string)
 
         video_paths = glob.glob('audioset/audios/'+ file + '/_Y' + audio_id + '.*')
@@ -95,10 +96,10 @@ def download_wavs(csv_path, audios_dir, file):
 
             # Add 'Y' to the head because some video ids are started with '-'
             # which will cause problem
-            audio_path = 'audioset/audios/'+ file +'/Y' + audio_id + '.wav'
+            audio_path = 'audioset/audios/'+ file +'/Y' + audio_id + '.mp3'
 
             # Extract audio in wav format
-            os.system("ffmpeg -loglevel panic -i {} -ac 1 -ar 32000 -ss {} -t 00:00:{} {} "\
+            os.system("ffmpeg -loglevel panic -i {} -codec:a mp3 -ac 1 -ar 32000 -ss {} -t 00:00:{} {} "\
                 .format(video_path, 
                 str(datetime.timedelta(seconds=start_time)), duration, 
                 audio_path))
@@ -110,16 +111,16 @@ def download_wavs(csv_path, audios_dir, file):
             logging.info("Download and convert to {}".format(audio_path))
 
 
-            if n % 500 == 0 and n > 0:
-                process_folder(audios_dir)
-                logging.info("Processed 5000 files")
+            #if n % 500 == 0 and n > 0:
+            #    process_folder(audios_dir)
+            #    logging.info("Processed 5000 files")
 
                 
     logging.info('Download finished! Time spent: {:.3f} s'.format(
         time.time() - download_time))
     
-    process_folder(audios_dir)
-    logging.info("Processed all files")
+    #process_folder(audios_dir)
+    #logging.info("Processed all files")
 
     logging.info('Logs can be viewed in {}'.format(logs_dir))
 
@@ -162,7 +163,9 @@ if __name__ == '__main__':
     os.system('wget -O "audioset/metadata/qa_true_counts.csv" "http://storage.googleapis.com/us_audioset/youtube_corpus/v1/qa/qa_true_counts.csv"')
     """
     #split_unbalanced_csv_to_partial_csvs('audioset/metadata/unbalanced_train_segments.csv', 'audioset/metadata/unbalanced_train_segments')
-    
+    #process_folder('unbalanced_train_segments')
+    #process_folder('eval_segments')
+    #process_folder('balanced_train_segments')
     p1 = Process(target=download_wavs, args = ["audioset/metadata/eval_segments.csv", "audioset/audios/eval_segments", 'eval_segments'])
     p2 = Process(target=download_wavs, args = ["audioset/metadata/balanced_train_segments.csv", "audioset/audios/balanced_train_segments", 'balanced_train_segments'])
     procs = []
@@ -173,20 +176,20 @@ if __name__ == '__main__':
             i = str(i)
         procs.append(Process(target=download_wavs, args = ["audioset/metadata/unbalanced_train_segments/unbalanced_train_segments_part"+ i +".csv", "audioset/audios/unbalanced_train_segments", 'unbalanced_train_segments']))
     
-    p1.start()
+    #p1.start()
     p2.start()
     
-    for i in range(1,41,3):
+    for i in range(0, 41, 19):
         if i == 40:
             startp = procs[i:]
         else:
-            startp = procs[i:i+3]
+            startp = procs[i:i+19]
         for p in startp:
             p.start()
     
         for p in startp:
             p.join()
-    p1.join()
+    #p1.join()
     p2.join()
     
     

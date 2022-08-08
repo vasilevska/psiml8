@@ -28,9 +28,9 @@ id_to_ix = {id : i for i, id in enumerate(ids)}
 ix_to_id = {i : id for i, id in enumerate(ids)}
 
 exp_name = "exp_htsat_pretrain" # the saved ckpt prefix name of the model 
-workspace = "/home/kechen/Research/HTSAT" # the folder of your code
-dataset_path = "/home/Research/audioset" # the dataset path
-desed_folder = "/home/Research/DESED" # the desed file
+workspace = "./" # the folder of your code
+dataset_path = "audioset" # the dataset path
+#desed_folder = "/home/Research/DESED" # the desed file
 
 dataset_type = "audioset" # "audioset" "esc-50" "scv2"
 index_type = "full_train" # only works for audioset
@@ -49,10 +49,10 @@ esc_fold = 0 # just for esc dataset, select the fold you need for evaluation and
 debug = False
 
 random_seed = 970131 # 19970318 970131 12412 127777 1009 34047
-batch_size = 32 * 4 # batch size per GPU x GPU number , default is 32 x 4 = 128
+batch_size = 16 # batch size per GPU x GPU number , default is 32 x 4 = 128
 learning_rate = 1e-3 # 1e-4 also workable 
 max_epoch = 100
-num_workers = 3
+num_workers = 0
 
 lr_scheduler_epoch = [10,20,30]
 lr_rate = [0.02, 0.05, 0.1]
@@ -97,7 +97,7 @@ htsat_num_head = [4,8,16,32]
 htsat_dim = 96 
 htsat_depth = [2,2,6,2]
 
-swin_pretrain_path = None
+cswin_pretrain_path = None
 # "/home/Research/model_backup/pretrain/swin_tiny_c24_patch4_window8_256.pth"
 
 # Some Deprecated Optimization in the model design, check the model code for details
@@ -127,7 +127,7 @@ esm_model_pathes = [
 ]
 
 # for framewise localization
-heatmap_dir = "/home/Research/heatmap_output"
+heatmap_dir = "heatmap_output"
 test_file = "htsat-test-ensemble"
 fl_local = False # indicate if we need to use this dataset for the framewise detection
 fl_dataset = "/home/Research/desed/desed_eval.npy"  
